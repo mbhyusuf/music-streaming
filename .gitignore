@@ -1,3 +1,5 @@
 /node_modules
 /experiments
 .env
+index.js
+index.html

@@ -14,13 +14,22 @@ import { pipeline } from "stream";
 import { promisify } from "util";
 import fetch from "node-fetch";
 
+import path from "url";
+import { dirname } from "path";
+const __filename = path.fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 app.use(morgan("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 // fs.statSync(process.env.SONG_DOWNLOAD_LINK);
 
-app.get("/", async (req, res) => {
+app.get("/", (req, res) => {
+    res.sendFile(path.resolve(__dirname, "./music-player/index.html"));
+});
+
+app.get("/song", async (req, res) => {
     const streamPipeline = promisify(pipeline);
 
     try {
@@ -30,12 +39,20 @@ app.get("/", async (req, res) => {
             throw new Error(`unexpected response ${response.statusText}`);
         }
 
+        console.log("Content-length", response.headers.get("content-length"));
+
         res.setHeader("Content-Type", "audio/mpeg");
-        res.setHeader("Content-Disposition", 'inline; filename="audio.mp3"');
+        // res.setHeader(
+        //     "Content-Disposition",
+        //     'attachment; filename="audio.mp4"'
+        // );
+        res.setHeader("Content-Disposition", 'inline; filename="audio.mp4"');
 
         response.body.on("close", () => {
             console.warn("Stream closed prematurely");
         });
+
+        console.log("Writable highwatermark", res.writableHighWaterMark);
 
         await streamPipeline(response.body, res);
         // console.log(response.body);
